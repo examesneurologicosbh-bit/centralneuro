@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard Neurológico - Sistema Expandido</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .tab-button.active { 
+            background-color: #3b82f6; 
+            color: white; 
+        }
+        .sidebar {
+            background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%);
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-left: 4px solid #3b82f6;
+        }
+        .stat-card.success { border-left-color: #10b981; }
+        .stat-card.warning { border-left-color: #f59e0b; }
+        .stat-card.danger { border-left-color: #ef4444; }
+        .stat-card.info { border-left-color: #8b5cf6; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Layout Principal -->
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <nav class="sidebar w-64 text-white p-6 overflow-y-auto">
+            <div class="mb-8">
+                <div class="flex items-center space-x-3 mb-2">
+                    <div class="bg-white p-2 rounded-lg">
+                        <i data-lucide="brain-circuit" class="w-6 h-6 text-blue-600"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-xl font-bold">NeuroClinic</h1>
+                        <p class="text-sm opacity-80">Sistema Expandido</p>
+                    </div>
+                </div>
+            </div>
+
+            <ul class="space-y-2">
+                <li>
+                    <button class="tab-button active w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors" onclick="showTab('dashboard')">
+                        <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                        <span>Dashboard</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="tab-button w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors" onclick="showTab('consultas')">
+                        <i data-lucide="stethoscope" class="w-5 h-5"></i>
+                        <span>Consultas</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="tab-button w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors" onclick="showTab('pacientes')">
+                        <i data-lucide="users" class="w-5 h-5"></i>
+                        <span>Pacientes</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="tab-button w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors" onclick="showTab('agendamentos')">
+                        <i data-lucide="calendar" class="w-5 h-5"></i>
+                        <span>Agendamentos</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="tab-button w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors" onclick="showTab('resultados')">
+                        <i data-lucide="file-text" class="w-5 h-5"></i>
+                        <span>Resultados</span>
+                    </button>
+                </li>
+                <li>
+                    <button class="tab-button w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors" onclick="showTab('ftp-manager')">
+                        <i data-lucide="server" class="w-5 h-5"></i>
+                        <span>FTP Manager</span>
+                    </button>
+                </li>
+                <li class="pt-4 border-t border-blue-700">
+                    <a href="/index.html" class="w-full flex items-center space-x-3 p-3 rounded-lg hover:bg-blue-700 transition-colors">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                        <span>Sistema Principal</span>
+                    </a>
+                </li>
+            </ul>
+        </nav>
+
+        <!-- Conteúdo Principal -->
+        <main class="flex-1 overflow-y-auto">
+            <!-- Header -->
+            <header class="bg-white shadow-sm border-b p-6">
+                <div class="flex justify-between items-center">
+                    <div>
+                        <h2 class="text-2xl font-bold text-gray-900" id="page-title">Dashboard Neurológico</h2>
+                        <p class="text-gray-600" id="page-subtitle">Visão geral do sistema expandido</p>
+                    </div>
+                    <div class="flex items-center space-x-4">
+                        <div class="bg-green-100 px-3 py-1 rounded-full">
+                            <span class="text-xs font-medium text-green-800" id="status-indicator">Online</span>
+                        </div>
+                        <button onclick="refreshData()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2">
+                            <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+                            <span>Atualizar</span>
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <!-- Conteúdo das Abas -->
+            <div class="p-6">
+                
+                <!-- Dashboard Tab -->
+                <div id="dashboard" class="tab-content active">
+                    <!-- Cards de Estatísticas -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                        <div class="stat-card p-6 rounded-lg shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Total Consultas</p>
+                                    <p class="text-3xl font-bold text-gray-900" id="total-consultas">-</p>
+                                    <p class="text-sm text-green-600">+12% este mês</p>
+                                </div>
+                                <div class="bg-blue-100 p-3 rounded-full">
+                                    <i data-lucide="stethoscope" class="w-6 h-6 text-blue-600"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card success p-6 rounded-lg shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Pacientes Ativos</p>
+                                    <p class="text-3xl font-bold text-gray-900" id="total-pacientes">-</p>
+                                    <p class="text-sm text-green-600">+8% este mês</p>
+                                </div>
+                                <div class="bg-green-100 p-3 rounded-full">
+                                    <i data-lucide="users" class="w-6 h-6 text-green-600"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card warning p-6 rounded-lg shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Exames Pendentes</p>
+                                    <p class="text-3xl font-bold text-gray-900" id="exames-pendentes">-</p>
+                                    <p class="text-sm text-yellow-600">Requer atenção</p>
+                                </div>
+                                <div class="bg-yellow-100 p-3 rounded-full">
+                                    <i data-lucide="clock" class="w-6 h-6 text-yellow-600"></i>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="stat-card info p-6 rounded-lg shadow-sm">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <p class="text-sm font-medium text-gray-600">Receita Mensal</p>
+                                    <p class="text-3xl font-bold text-gray-900" id="receita-mensal">-</p>
+                                    <p class="text-sm text-purple-600">+15% este mês</p>
+                                </div>
+                                <div class="bg-purple-100 p-3 rounded-full">
+                                    <i data-lucide="trending-up" class="w-6 h-6 text-purple-600"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Gráficos -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-white p-6 rounded-lg shadow-sm">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Consultas por Tipo de Exame</h3>
+                            <canvas id="examTypesChart" width="400" height="200"></canvas>
+                        </div>
+
+                        <div class="bg-white p-6 rounded-lg shadow-sm">
+                            <h3 class="text-lg font-semibold text-gray-900 mb-4">Status das Consultas</h3>
+                            <canvas id="consultaStatusChart" width="400" height="200"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Consultas Recentes -->
+                    <div class="bg-white rounded-lg shadow-sm">
+                        <div class="p-6 border-b">
+                            <h3 class="text-lg font-semibold text-gray-900">Consultas Recentes</h3>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Paciente</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo Exame</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="consultas-recentes" class="divide-y divide-gray-200">
+                                    <!-- Conteúdo será carregado via JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Consultas Tab -->
+                <div id="consultas" class="tab-content">
+                    <div class="mb-6 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-xl font-semibold text-gray-900">Gestão de Consultas</h3>
+                            <p class="text-gray-600">Gerencie consultas neurológicas especializadas</p>
+                        </div>
+                        <button onclick="showModal('nova-consulta')" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center space-x-2">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            <span>Nova Consulta</span>
+                        </button>
+                    </div>
+
+                    <!-- Filtros -->
+                    <div class="bg-white p-4 rounded-lg shadow-sm mb-6">
+                        <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <select id="filtro-tipo-exame" class="border border-gray-300 rounded-md px-3 py-2">
+                                <option value="">Todos os Tipos</option>
+                            </select>
+                            <select id="filtro-status-consulta" class="border border-gray-300 rounded-md px-3 py-2">
+                                <option value="">Todos os Status</option>
+                            </select>
+                            <input type="date" id="filtro-data-inicio-consulta" class="border border-gray-300 rounded-md px-3 py-2">
+                            <button onclick="filtrarConsultas()" class="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700">
+                                <i data-lucide="search" class="w-4 h-4 inline mr-2"></i>Filtrar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Consultas -->
+                    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Paciente</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo Exame</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Data/Hora</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Valor</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-consultas" class="divide-y divide-gray-200">
+                                <!-- Conteúdo será carregado via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Pacientes Tab -->
+                <div id="pacientes" class="tab-content">
+                    <div class="mb-6 flex justify-between items-center">
+                        <div>
+                            <h3 class="text-xl font-semibold text-gray-900">Gestão de Pacientes</h3>
+                            <p class="text-gray-600">Cadastro e acompanhamento de pacientes</p>
+                        </div>
+                        <button onclick="showModal('novo-paciente')" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 flex items-center space-x-2">
+                            <i data-lucide="user-plus" class="w-4 h-4"></i>
+                            <span>Novo Paciente</span>
+                        </button>
+                    </div>
+
+                    <!-- Busca de Pacientes -->
+                    <div class="bg-white p-4 rounded-lg shadow-sm mb-6">
+                        <div class="flex space-x-4">
+                            <input type="text" id="busca-paciente" placeholder="Buscar por nome, CPF ou telefone..." class="flex-1 border border-gray-300 rounded-md px-3 py-2">
+                            <button onclick="buscarPacientes()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                                <i data-lucide="search" class="w-4 h-4 inline mr-2"></i>Buscar
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Lista de Pacientes -->
+                    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Nome</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CPF</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Idade</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Última Consulta</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody id="lista-pacientes" class="divide-y divide-gray-200">
+                                <!-- Conteúdo será carregado via JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Agendamentos Tab -->
+                <div id="agendamentos" class="tab-content">
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-gray-900">Agendamentos do Sistema Principal</h3>
+                        <p class="text-gray-600">Visualização dos agendamentos do sistema original</p>
+                    </div>
+
+                    <!-- Integração com sistema principal -->
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="text-center">
+                            <i data-lucide="calendar" class="w-16 h-16 text-gray-400 mx-auto mb-4"></i>
+                            <h4 class="text-lg font-medium text-gray-900 mb-2">Agendamentos Integrados</h4>
+                            <p class="text-gray-600 mb-4">Os agendamentos do sistema principal são exibidos aqui</p>
+                            <button onclick="loadAgendamentos()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                                Carregar Agendamentos
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Resultados Tab -->
+                <div id="resultados" class="tab-content">
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-gray-900">Resultados de Exames</h3>
+                        <p class="text-gray-600">Gestão de resultados e laudos neurológicos</p>
+                    </div>
+
+                    <div class="bg-white rounded-lg shadow-sm p-6">
+                        <div class="text-center">
+                            <i data-lucide="file-text" class="w-16 h-16 text-gray-400 mx-auto mb-4"></i>
+                            <h4 class="text-lg font-medium text-gray-900 mb-2">Resultados em Desenvolvimento</h4>
+                            <p class="text-gray-600">Funcionalidade de resultados será implementada em breve</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- FTP Manager Tab -->
+                <div id="ftp-manager" class="tab-content">
+                    <div class="mb-6">
+                        <h3 class="text-xl font-semibold text-gray-900">Gerenciador FTP</h3>
+                        <p class="text-gray-600">Gestão de arquivos e implantação do sistema</p>
+                    </div>
+
+                    <!-- Status da Conexão FTP -->
+                    <div class="bg-white p-6 rounded-lg shadow-sm mb-6">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h4 class="text-lg font-medium text-gray-900">Status da Conexão</h4>
+                                <p class="text-gray-600">ftp.examesneurologicos.com.br</p>
+                            </div>
+                            <div class="flex space-x-4">
+                                <button onclick="testFTPConnection()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700">
+                                    <i data-lucide="wifi" class="w-4 h-4 inline mr-2"></i>Testar Conexão
+                                </button>
+                                <button onclick="deploySystem()" class="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700">
+                                    <i data-lucide="upload" class="w-4 h-4 inline mr-2"></i>Implantar Sistema
+                                </button>
+                            </div>
+                        </div>
+                        <div id="ftp-status" class="mt-4 p-4 rounded-lg bg-gray-100">
+                            <p class="text-gray-600">Clique em "Testar Conexão" para verificar o status</p>
+                        </div>
+                    </div>
+
+                    <!-- Arquivos do Servidor -->
+                    <div class="bg-white rounded-lg shadow-sm">
+                        <div class="p-6 border-b">
+                            <h4 class="text-lg font-medium text-gray-900">Arquivos no Servidor</h4>
+                        </div>
+                        <div id="ftp-files" class="p-6">
+                            <p class="text-gray-600">Carregue a lista de arquivos para visualizar</p>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Modais -->
+    
+    <!-- Modal Nova Consulta -->
+    <div id="modal-nova-consulta" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-gray-900">Nova Consulta Neurológica</h3>
+                <button onclick="hideModal('nova-consulta')" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <form id="form-nova-consulta" class="space-y-4">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Paciente</label>
+                        <select id="consulta-paciente" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                            <option value="">Selecione o paciente</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Tipo de Exame</label>
+                        <select id="consulta-tipo-exame" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                            <option value="">Selecione o tipo</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Data da Consulta</label>
+                        <input type="date" id="consulta-data" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Horário</label>
+                        <select id="consulta-horario" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                            <option value="">Selecione o horário</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Observações</label>
+                    <textarea id="consulta-observacoes" rows="3" class="w-full border border-gray-300 rounded-md px-3 py-2"></textarea>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="hideModal('nova-consulta')" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700">
+                        Agendar Consulta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Novo Paciente -->
+    <div id="modal-novo-paciente" class="fixed inset-0 bg-black bg-opacity-50 hidden flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-4xl max-h-screen overflow-y-auto">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-xl font-semibold text-gray-900">Novo Paciente</h3>
+                <button onclick="hideModal('novo-paciente')" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            
+            <form id="form-novo-paciente" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Nome Completo *</label>
+                        <input type="text" id="paciente-nome" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">CPF</label>
+                        <input type="text" id="paciente-cpf" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Data de Nascimento *</label>
+                        <input type="date" id="paciente-nascimento" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Sexo *</label>
+                        <select id="paciente-sexo" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                            <option value="">Selecione</option>
+                            <option value="M">Masculino</option>
+                            <option value="F">Feminino</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Telefone *</label>
+                        <input type="tel" id="paciente-telefone" required class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Email</label>
+                        <input type="email" id="paciente-email" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Endereço</label>
+                    <textarea id="paciente-endereco" rows="2" class="w-full border border-gray-300 rounded-md px-3 py-2"></textarea>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Convênio</label>
+                        <input type="text" id="paciente-convenio" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">Número da Carteirinha</label>
+                        <input type="text" id="paciente-carteirinha" class="w-full border border-gray-300 rounded-md px-3 py-2">
+                    </div>
+                </div>
+                
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="hideModal('novo-paciente')" class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                        Cadastrar Paciente
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Loading Overlay -->
+    <div id="loading" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center hidden z-50">
+        <div class="bg-white rounded-lg p-6 flex items-center space-x-4">
+            <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <span class="text-gray-700">Carregando...</span>
+        </div>
+    </div>
+
+    <script src="dashboard.js"></script>
+    <script>
+        // Inicializar ícones Lucide
+        lucide.createIcons();
+        
+        // Inicializar aplicação
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDashboardData();
+            checkSystemStatus();
+            loadExamTypes();
+            loadConsultaStatus();
+        });
+    </script>
+</body>
+</html>
+
